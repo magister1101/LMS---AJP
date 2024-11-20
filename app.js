@@ -8,6 +8,7 @@ const dotenv = require('dotenv');
 
 // Router
 const userRouter = require('./api/routes/users');
+const courseRouter = require('./api/routes/courses');
 
 mongoose.connect('mongodb+srv://ajp:ajppassword@lmsajp.urmno.mongodb.net/');
 mongoose.Promise = global.Promise;
@@ -31,7 +32,8 @@ app.use((req, res, next) => {
 });
 
 // routes
-app.use('/users', userRouter)
+app.use('/users', userRouter);
+app.use('/courses', courseRouter);
 
 app.use((req, res, next) => {
     const error = new Error('Not Found');
