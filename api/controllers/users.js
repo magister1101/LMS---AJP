@@ -4,6 +4,50 @@ const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
 
+const performUpdate = (userId, updateFields, res) => {
+    User.findByIdAndUpdate(userId, updateFields, { new: true })
+        .then((updatedUser) => {
+            if (!updatedUser) {
+                return res.status(404).json({ message: "User not found" });
+            }
+            return res.status(200).json(updatedUser);
+
+        })
+        .catch((err) => {
+            return res.status(500).json({
+                message: "Error in updating user",
+                error: err
+            });
+        })
+};
+
+const isAdmin = async (valToken, res) => {
+    const AUTH_TOKEN = valToken;
+    if (!AUTH_TOKEN) {
+        return res.status(401).json({ message: "No token provided" });
+    }
+    let admin = false;
+    const token = AUTH_TOKEN;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    await User.findOne({ _id: decoded.userId })
+        .exec()
+        .then(user => {
+            if (user.role === "admin") {
+                admin = true;
+            }
+        }
+        )
+        .catch(err => {
+            return res.status(500).json({
+                message: "Error in retrieving user information",
+                error: err
+            });
+        })
+    return admin;
+
+};
+
 exports.users_get_user = (req, res, next) => {
     User.find()
         .exec()
@@ -224,46 +268,3 @@ exports.users_update_user = (req, res, next) => {
     }
 };
 
-const performUpdate = (userId, updateFields, res) => {
-    User.findByIdAndUpdate(userId, updateFields, { new: true })
-        .then((updatedUser) => {
-            if (!updatedUser) {
-                return res.status(404).json({ message: "User not found" });
-            }
-            return res.status(200).json(updatedUser);
-
-        })
-        .catch((err) => {
-            return res.status(500).json({
-                message: "Error in updating user",
-                error: err
-            });
-        })
-};
-
-const isAdmin = async (valToken, res) => {
-    const AUTH_TOKEN = valToken;
-    if (!AUTH_TOKEN) {
-        return res.status(401).json({ message: "No token provided" });
-    }
-    let admin = false;
-    const token = AUTH_TOKEN;
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    await User.findOne({ _id: decoded.userId })
-        .exec()
-        .then(user => {
-            if (user.role === "admin") {
-                admin = true;
-            }
-        }
-        )
-        .catch(err => {
-            return res.status(500).json({
-                message: "Error in retrieving user information",
-                error: err
-            });
-        })
-    return admin;
-
-};
