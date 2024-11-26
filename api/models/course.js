@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { type } = require('os');
 
 const CourseSchema = new mongoose.Schema({
     _id: mongoose.Schema.Types.ObjectId,
@@ -11,8 +12,14 @@ const CourseSchema = new mongoose.Schema({
             name: { type: String },
             group: { type: String },
             isApproved: { type: Boolean, default: false },
-
         },
+    ],
+    activities: [
+        {
+            name: { type: String },
+            description: { type: String },
+            active: { type: Boolean },
+        }
     ],
 
     active: { type: Boolean, default: false },
