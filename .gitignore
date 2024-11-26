@@ -1,2 +1,3 @@
 .env
 nodemon.json
+.vercel

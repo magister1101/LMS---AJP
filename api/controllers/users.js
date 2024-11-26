@@ -28,7 +28,7 @@ const isAdmin = async (valToken, res) => {
     }
     let admin = false;
     const token = AUTH_TOKEN;
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, "secretkey");
 
     await User.findOne({ _id: decoded.userId })
         .exec()
@@ -48,23 +48,79 @@ const isAdmin = async (valToken, res) => {
 
 };
 
-exports.users_get_user = (req, res, next) => {
-    User.find()
-        .exec()
-        .then(user => {
-            const response = {
-                count: user.length,
-                users: user
+exports.users_get_user = async (req, res, next) => {
+    try {
+        const { active, query, filter } = req.query;
+
+        const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        let searchCriteria = {};
+        const queryConditions = [];
+
+        if (query) {
+            const escapedQuery = escapeRegex(query);
+            const orConditions = [];
+            if (mongoose.Types.ObjectId.isValid(query)) {
+                orConditions.push({ _id: query });
             }
 
-            return res.status(200).json(response);
+            orConditions.push(
+                { firstName: { $regex: escapedQuery, $options: 'i' } },
+                { lastName: { $regex: escapedQuery, $options: 'i' } },
+                { middleName: { $regex: escapedQuery, $options: 'i' } },
+                { group: { $regex: escapedQuery, $options: 'i' } },
+                { email: { $regex: escapedQuery, $options: 'i' } },
+                { username: { $regex: escapedQuery, $options: 'i' } },
+                { role: { $regex: escapedQuery, $options: 'i' } },
+
+
+            );
+
+            queryConditions.push({ $or: orConditions });
+        }
+
+        if (filter) {
+            const escapedFilter = escapeRegex(filter);
+            const orConditions = [];
+            if (mongoose.Types.ObjectId.isValid(filter)) {
+                orConditions.push({ _id: filter });
+            }
+
+            orConditions.push(
+                { firstName: { $regex: escapedFilter, $options: 'i' } },
+                { lastName: { $regex: escapedFilter, $options: 'i' } },
+                { middleName: { $regex: escapedFilter, $options: 'i' } },
+                { group: { $regex: escapedFilter, $options: 'i' } },
+                { email: { $regex: escapedFilter, $options: 'i' } },
+                { username: { $regex: escapedFilter, $options: 'i' } },
+                { role: { $regex: escapedFilter, $options: 'i' } },
+
+
+            );
+
+            queryConditions.push({ $or: orConditions });
+        }
+        if (active) {
+            const isActive = active === 'true';
+            queryConditions.push({ active: isActive });
+        }
+
+        if (queryConditions.length > 0) {
+            searchCriteria = { $and: queryConditions };
+        }
+
+        const users = await User.find(searchCriteria);
+
+        return res.status(200).json(users);
+
+
+    }
+    catch (error) {
+        return res.status(500).json({
+            message: "Error in retrieving users",
+            error: error
         })
-        .catch(err => {
-            return res.status(500).json({
-                message: "Error in retrieving users",
-                error: err
-            });
-        })
+    }
 };
 
 exports.users_get_userByRole = async (req, res, next) => {
@@ -110,35 +166,16 @@ exports.users_get_userById = (req, res, next) => {
 };
 
 exports.users_profile_user = (req, res, next) => {
-
-    try {
-        const AUTH_TOKEN = req.body.token;
-        if (!AUTH_TOKEN) {
-            return res.status(401).json({ message: "No token provided" });
-        }
-
-        const token = AUTH_TOKEN;
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-        User.findOne({ _id: decoded.userId })
-            .exec()
-            .then(user => {
-                return res.status(200).json(user);
-            })
-            .catch(err => {
-                return res.status(500).json({
-                    message: "Error in retrieving user information",
-                    error: err
-                });
-            })
-    } catch (error) {
-        return res.status(500).json({
-            message: "Error in validating token",
-            error: error
+    User.findOne({ _id: req.userData.userId })
+        .exec()
+        .then(user => {
+            return res.status(200).json(user);
+        })
+        .catch(err => {
+            return res.status(500).json({
+                error: err
+            });
         });
-    }
-
-
 };
 
 exports.users_token_validation = (req, res, next) => {
@@ -149,7 +186,7 @@ exports.users_token_validation = (req, res, next) => {
         }
 
         const token = AUTH_TOKEN;
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, "secretkey");
 
         return res.json({ isValid: true });
     } catch (error) {
@@ -223,7 +260,7 @@ exports.users_login_user = (req, res, next) => {
                         userId: user[0]._id,
                         username: user[0].username,
                     },
-                        process.env.JWT_SECRET, //private key
+                        "secretkey", //private key
                         {
                             expiresIn: "2h" //key expires in 1 hour
                         }

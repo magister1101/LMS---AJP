@@ -6,30 +6,67 @@ const Course = require('../models/course');
 const User = require('../models/user');
 const { type } = require('os');
 
-exports.courses_get_all_course = (req, res, next) => { // Course object is reference from course model
-    Course.find()
-        .exec()
-        .then(course => {
-            const response = {
-                count: course.length,
-                course: course
+const performUpdate = (userId, updateFields, res) => {
+    User.findByIdAndUpdate(userId, updateFields, { new: true })
+        .then((updatedUser) => {
+            if (!updatedUser) {
+                return res.status(404).json({ message: "User not found" });
             }
-            if (course.length > 0) {
-                res.status(200).json(response)
-            }
-            else {
-                res.status(404).json({
-                    message: 'No Course Entries Found'
-                })
-            }
+            return res.status(200).json(updatedUser);
 
         })
-        .catch(err => {
-            res.status(500).json({
-                error: err,
-            })
+        .catch((err) => {
+            return res.status(500).json({
+                message: "Error in updating user",
+                error: err
+            });
+        })
+};
+
+exports.courses_get_all_course = async (req, res, next) => { // Course object is reference from course model
+    try {
+        const { active, query } = req.query;
+
+        const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        let searchCriteria = {};
+        const queryConditions = [];
+
+        if (query) {
+            const escapedQuery = escapeRegex(query);
+            const orConditions = [];
+            if (mongoose.Types.ObjectId.isValid(query)) {
+                orConditions.push({ _id: query });
+            }
+
+            orConditions.push(
+                { name: { $regex: escapedQuery, $options: 'i' } },
+                { description: { $regex: escapedQuery, $options: 'i' } },
+            );
+
+            queryConditions.push({ $or: orConditions });
         }
-        )
+
+        if (active) {
+            const isActive = active === 'true';
+            queryConditions.push({ active: isActive });
+        }
+
+        if (queryConditions.length > 0) {
+            searchCriteria = { $and: queryConditions };
+        }
+
+        const users = await Course.find(searchCriteria);
+        return res.status(200).json(users);
+
+
+    }
+    catch (error) {
+        return res.status(500).json({
+            message: "Error in retrieving users",
+            error: error
+        })
+    }
 };
 
 exports.courses_create_course = (req, res, next) => {
@@ -37,6 +74,7 @@ exports.courses_create_course = (req, res, next) => {
     const course = new Course({
         _id: new mongoose.Types.ObjectId(),
         name: req.body.name,
+        username: req.body.username,
         description: req.body.description
     });
     course.save().then(result => {
@@ -53,49 +91,50 @@ exports.courses_create_course = (req, res, next) => {
 };
 
 exports.users_join_course = async (req, res, next) => {
-    const { courseId, userId } = req.body;
+    const { courseId, userId, name } = req.body;
 
     try {
         if (!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(userId)) {
             return res.status(400).json({
-                message: 'Invalid ID (courseId or userId)'
+                message: 'Invalid ID (courseId or userId)',
             });
-
         }
 
         const course = await Course.findById(courseId);
         if (!course) {
             return res.status(404).json({
-                message: 'Course not found'
+                message: 'Course not found',
             });
         }
 
-        const isAlreadyMember = course.population.some(pop =>
-            pop.members.includes(userId)
-        )
+        const isAlreadyMember = course.members.some((member) =>
+            member.member && member.member.toString() === userId
+        );
 
         if (isAlreadyMember) {
             return res.status(400).json({
-                message: 'User already joined the course'
+                message: 'User already joined the course',
             });
         }
 
-        course.population.push({
-            members: [userId],
+        course.members.push({
+            member: userId,
+            name: name,
             isApproved: false,
-        })
+        });
 
+        // Save the course
         await course.save();
-        res.status(200).json({
-            message: 'User joined the course',
-            course: course
-        })
 
+        return res.status(200).json({
+            message: 'User joined the course',
+            course,
+        });
     } catch (err) {
         return res.status(500).json({
-            message: 'error in joining course',
-            error: err
-        })
+            message: 'Error in joining course',
+            error: err.message,
+        });
     }
 };
 
