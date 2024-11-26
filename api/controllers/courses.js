@@ -23,7 +23,7 @@ const performUpdate = (userId, updateFields, res) => {
         })
 };
 
-exports.courses_get_all_course = async (req, res, next) => { // Course object is reference from course model
+exports.courses_get_all_course = async (req, res, next) => {
     try {
         const { active, query } = req.query;
 
@@ -122,7 +122,7 @@ exports.users_join_course = async (req, res, next) => {
             member: userId,
             name: name,
             group: group,
-            isApproved: false,
+            isApproved: true,
         });
 
         // Save the course
@@ -204,7 +204,7 @@ exports.addActivity = async (req, res) => {
     }
 };
 
-exports.getUserActivities = async (req, res) => {
+exports.getUserCourses = async (req, res) => {
     const userId = req.userData.userId;
     console.log(userId)
 
@@ -231,4 +231,65 @@ exports.getUserActivities = async (req, res) => {
         res.status(500).json({ error: 'An error occurred while retrieving activities.' });
     }
 };
+
+exports.getUserActivities = async (req, res) => {
+    const courseId = req.body.courseId;
+
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        return res.status(400).json({ error: 'Invalid course ID.' });
+    }
+
+    try {
+        const courses = await Course.findById({ _id: courseId })
+        if (courses.length === 0) {
+            return res.status(404).json({ message: 'No activities found for this user.' });
+        }
+        const activities = courses.activities.filter(activity => activity.active);
+        return res.status(200).json({
+            activities
+        });
+    } catch (error) {
+        console.error('Error retrieving user activities:', error);
+        res.status(500).json({ error: 'An error occurred while retrieving activities.' });
+    }
+};
+
+exports.updateActivity = async (req, res) => {
+    const { courseId, activityId } = req.params;
+    const updateFields = req.body;
+
+    try {
+        if (!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(activityId)) {
+            return res.status(400).json({ message: 'Invalid course or activity ID' });
+        }
+
+        // Find the course and locate the specific activity
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
+        const activity = course.activities.id(activityId);
+        if (!activity) {
+            return res.status(404).json({ message: 'Activity not found' });
+        }
+
+        // Update the activity fields
+        Object.keys(updateFields).forEach((field) => {
+            activity[field] = updateFields[field];
+        });
+
+        // Save the updated course
+        await course.save();
+
+        res.status(200).json({
+            message: 'Activity updated successfully',
+            activity: activity,
+        });
+    } catch (error) {
+        console.error('Error updating activity:', error);
+        res.status(500).json({ error: 'An error occurred while updating the activity.' });
+    }
+};
+
 
