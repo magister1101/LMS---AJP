@@ -22,7 +22,7 @@ const CourseSchema = new mongoose.Schema({
         }
     ],
 
-    active: { type: Boolean, default: false },
+    active: { type: Boolean, default: true },
 });
 
 module.exports = mongoose.model('Course', CourseSchema);

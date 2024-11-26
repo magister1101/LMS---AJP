@@ -7,7 +7,7 @@ const User = require('../models/user');
 const { type } = require('os');
 
 const performUpdate = (userId, updateFields, res) => {
-    User.findByIdAndUpdate(userId, updateFields, { new: true })
+    Course.findByIdAndUpdate(userId, updateFields, { new: true })
         .then((updatedUser) => {
             if (!updatedUser) {
                 return res.status(404).json({ message: "User not found" });
@@ -75,7 +75,8 @@ exports.courses_create_course = (req, res, next) => {
         _id: new mongoose.Types.ObjectId(),
         name: req.body.name,
         username: req.body.username,
-        description: req.body.description
+        description: req.body.description,
+        active: active,
     });
     course.save().then(result => {
         res.status(201).json({
@@ -139,33 +140,27 @@ exports.users_join_course = async (req, res, next) => {
     }
 };
 
-exports.courses_archive_course = async (req, res, next) => {
-    const { courseId } = req.params;
-    const { isArchived } = req.body;
+exports.courses_update_course = async (req, res, next) => {
+    const userId = req.params.id;
+    const updateFields = req.body;
 
-    if (typeof isArchived !== 'boolean') {
-        return res.status(400).json({
-            message: 'isArchived should be a boolean'
+    if (updateFields.password) {
+        const bcrypt = require('bcrypt');
+        const saltRounds = 10;
+
+        bcrypt.hash(updateFields.password, saltRounds, (err, hash) => {
+            if (err) {
+                return res.status(500).json({
+                    message: "Error in hashing password",
+                    error: err
+                });
+            }
+            updateFields.password = hash;
+            performUpdate(userId, updateFields, res);
         });
     }
-
-    try {
-        const archivedCourse = await Course.findByIdAndUpdate(courseId, { isArchived }, { new: true });
-        if (!archivedCourse) {
-            res.status(404).json({
-                message: 'Course not found'
-            });
-        }
-        res.status(200).json({
-            message: 'Course archived',
-            course: archivedCourse
-        });
-    }
-    catch (err) {
-        res.status(500).json({
-            message: 'Error in archiving course',
-            error: err
-        });
+    else {
+        performUpdate(userId, updateFields, res);
     }
 };
 
@@ -208,7 +203,6 @@ exports.addActivity = async (req, res) => {
         });
     }
 };
-
 
 exports.getUserActivities = async (req, res) => {
     const userId = req.userData.userId;

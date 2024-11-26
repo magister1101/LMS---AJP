@@ -10,6 +10,6 @@ router.get('/viewer', checkAuth, CoursesController.getUserActivities);
 router.post('/', CoursesController.courses_create_course);
 router.post('/activity', CoursesController.addActivity);
 router.post('/join', CoursesController.users_join_course);
-router.put('/update/:id', CoursesController.courses_archive_course);
+router.put('/update/:id', CoursesController.courses_update_course);
 
 module.exports = router;
