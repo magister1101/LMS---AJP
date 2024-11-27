@@ -13,6 +13,7 @@ const courseRouter = require('./api/routes/courses');
 mongoose.connect('mongodb+srv://ajp:ajppassword@lmsajp.urmno.mongodb.net/');
 mongoose.Promise = global.Promise;
 
+app.use(cors());
 app.use(morgan('dev'));
 app.use('/uploads', express.static('uploads'));
 app.use(bodyParser.json());

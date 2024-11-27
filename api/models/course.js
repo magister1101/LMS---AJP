@@ -16,9 +16,11 @@ const CourseSchema = new mongoose.Schema({
     ],
     activities: [
         {
+            _id: { type: mongoose.Schema.Types.ObjectId },
             name: { type: String },
             description: { type: String },
             active: { type: Boolean },
+            file: { type: String },
         }
     ],
 

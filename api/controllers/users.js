@@ -262,7 +262,7 @@ exports.users_login_user = (req, res, next) => {
                     },
                         "secretkey", //private key
                         {
-                            expiresIn: "2h" //key expires in 1 hour
+                            expiresIn: "8h" //key expires in 1 hour
                         }
                     )
 
