@@ -1,3 +1,4 @@
 .env
 nodemon.json
 .vercel
+node_modules

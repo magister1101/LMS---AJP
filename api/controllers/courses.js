@@ -197,7 +197,7 @@ exports.courses_create_course = (req, res, next) => {
         name: req.body.name,
         username: req.body.username,
         description: req.body.description,
-        active: active,
+        active: true,
     });
     course.save().then(result => {
         res.status(201).json({
@@ -361,20 +361,28 @@ exports.getUserCourses = async (req, res) => {
 };
 
 exports.getUserActivities = async (req, res) => {
-    const courseId = req.body.courseId;
+    const { courseId } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(courseId)) {
         return res.status(400).json({ error: 'Invalid course ID.' });
     }
 
     try {
-        const courses = await Course.findById({ _id: courseId })
-        if (courses.length === 0) {
-            return res.status(404).json({ message: 'No activities found for this user.' });
+        const course = await Course.findById(courseId);
+
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found.' });
         }
-        const activities = courses.activities.filter(activity => activity.active);
+
+        // Filter out activities where active is false
+        const activeActivities = course.activities.filter(activity => activity.active === true);
+
+        if (activeActivities.length === 0) {
+            return res.status(404).json({ message: 'No active activities found for this course.' });
+        }
+
         return res.status(200).json({
-            activities
+            activities: activeActivities
         });
     } catch (error) {
         console.error('Error retrieving user activities:', error);

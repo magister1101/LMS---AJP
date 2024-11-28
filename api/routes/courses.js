@@ -9,7 +9,7 @@ const CoursesController = require('../controllers/courses');
 router.get('/', CoursesController.courses_get_all_course);
 router.get('/viewer', checkAuth, CoursesController.getUserCourses);
 router.get('/getLogs', CoursesController.viewLogs);
-router.post('/activities', checkAuth, CoursesController.getUserActivities);
+router.post('/activities', CoursesController.getUserActivities);
 router.post('/', CoursesController.courses_create_course);
 router.post('/activity', checkAuth, upload.single('file'), CoursesController.addActivity);
 router.post('/member', CoursesController.users_join_course);
