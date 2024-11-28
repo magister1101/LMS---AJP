@@ -309,6 +309,7 @@ exports.addActivity = async (req, res) => {
         console.log(course.activities)
 
         course.activities.push({
+            _id: new mongoose.Types.ObjectId(),
             name: name,
             description: description,
             file: req.file.path,
@@ -374,15 +375,10 @@ exports.getUserActivities = async (req, res) => {
             return res.status(404).json({ message: 'Course not found.' });
         }
 
-        // Filter out activities where active is false
-        const activeActivities = course.activities.filter(activity => activity.active === true);
-
-        if (activeActivities.length === 0) {
-            return res.status(404).json({ message: 'No active activities found for this course.' });
-        }
+        const activities = course.activities.filter((activity) => activity.active);
 
         return res.status(200).json({
-            activities: activeActivities
+            activities
         });
     } catch (error) {
         console.error('Error retrieving user activities:', error);
