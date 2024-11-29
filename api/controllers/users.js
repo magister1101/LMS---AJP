@@ -196,6 +196,9 @@ exports.users_token_validation = (req, res, next) => {
 
 exports.users_create_user = (req, res, next) => {
 
+    if (req.body.role) {
+        req.body.role = req.body.role.toLowerCase();
+    }
     User.find({ $or: [{ username: req.body.username }, { email: req.body.email }] })
         .then(user => {
             if (user.length >= 1) {
